@@ -1,6 +1,7 @@
 node_modules/
 dist/
 release/
+extra_imp/
 *.log
 .DS_Store
 .vscode/
