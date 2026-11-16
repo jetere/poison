@@ -1,5 +1,11 @@
 # Poison
 
+![Languages](https://img.shields.io/badge/Languages-JavaScript%20%7C%20TypeScript-yellow.svg)
+![Desktop](https://img.shields.io/badge/Desktop-Electron%2037-47848F.svg)
+![Build](https://img.shields.io/badge/Build-Vite%207-646CFF.svg)
+![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Web-lightgrey.svg)
+![Status](https://img.shields.io/badge/Status-Alpha-orange.svg)
+
 A pixel-art platformer and level editor by **Jetere**, built for Windows with Electron and Vite.
 
 Play levels, adjust movement settings, and build your own scenes in the level editor. The software is in active development, so features and visuals may change.
