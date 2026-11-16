@@ -1,8 +1,8 @@
-# Poison and Poison Studio
+# Poison
 
 A pixel-art platformer and level editor by **Jetere**, built for Windows with Electron and Vite.
 
-Play levels, adjust movement settings, and build your own scenes in Poison Studio. The software is in active development, so features and visuals may change.
+Play levels, adjust movement settings, and build your own scenes in the level editor. The software is in active development, so features and visuals may change.
 
 ## Screenshots
 
@@ -10,9 +10,9 @@ Play levels, adjust movement settings, and build your own scenes in Poison Studi
 
 ![Poison gameplay with movement settings](docs/screenshots/game.png)
 
-### Poison Studio
+### Level editor
 
-![Poison Studio with level tools, object library, and inspector](docs/screenshots/studio.png)
+![the level editor with level tools, object library, and inspector](docs/screenshots/studio.png)
 
 ## Features
 
@@ -26,7 +26,7 @@ Play levels, adjust movement settings, and build your own scenes in Poison Studi
 - Save scenes locally or import and export them as JSON files.
 - Add custom object scripts with explicit permission before they run.
 
-The game and its audio stop while Poison Studio is open. Use **Play scene** to test your work.
+The game and its audio stop while the level editor is open. Use **Play scene** to test your work.
 
 ## Download and play
 
@@ -77,13 +77,13 @@ Click the game area to focus it before using the keyboard.
 | Dash | X, Shift, or J |
 | Respawn | R |
 
-Select **Open Poison Studio** to edit a level, then select **Play scene** to test it.
+Select **Open editor** to edit a level, then select **Play scene** to test it.
 
 ## Save and share scenes
 
 Use the desktop **File** menu to open or save a scene as a JSON file. **Save Scene As** lets you choose a new file name or location.
 
-Poison Studio also has a local scene library and JSON import/export buttons. Scene files preserve custom objects, prefabs, and custom theme data. Imported scripts stay disabled until you approve them in Studio.
+the level editor also has a local scene library and JSON import/export buttons. Scene files preserve custom objects, prefabs, and custom theme data. Imported scripts stay disabled until you approve them in Studio.
 
 ## Build Windows executables
 

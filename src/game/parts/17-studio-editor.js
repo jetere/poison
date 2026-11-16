@@ -61,7 +61,7 @@
   let history=[], historyIndex=0, saveTimer=0, noticeTimer=0, miniBounds=null, importTarget='editor', openedOnce=false;
   const el = document.createElement('div'); el.id='poison-studio';
   el.innerHTML = `
-    <div class="ps-bar"><div class="ps-brandwrap"><div class="ps-brand">POISON<small>CREATOR STUDIO</small></div><div class="ps-pixelbits" aria-hidden="true"><i></i><i></i><i></i></div></div><span class="ps-divider"></span><span class="ps-floating-spark" aria-hidden="true"></span>
+    <div class="ps-bar"><div class="ps-brandwrap"><div class="ps-brand">POISON</div><div class="ps-pixelbits" aria-hidden="true"><i></i><i></i><i></i></div></div><span class="ps-divider"></span><span class="ps-floating-spark" aria-hidden="true"></span>
       <input id="ps-name" class="ps-name" aria-label="Scene name" maxlength="40" value="My level" title="Scene name">
       <button id="ps-new" title="Create a new scene">New ▾</button><button id="ps-save" title="Save to browser · Ctrl+S">Save</button>
       <select id="ps-library" aria-label="Saved scenes"></select><button id="ps-load" title="Open selected scene">Open</button>
