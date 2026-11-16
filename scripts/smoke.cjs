@@ -21,6 +21,16 @@ app.whenReady().then(async () => {
     await run(`poisonRuntime.pause(); if(poisonRuntime.mode!=='paused'||poisonRuntime.frameScheduled)throw Error('Pause failed'); poisonRuntime.resume(); poisonStudio.open();`);
     await new Promise(resolve => setTimeout(resolve, 100));
     assert.equal(await run(`poisonRuntime.mode==='stopped' && !poisonRuntime.frameScheduled && window.poisonEditorOpen`), true, 'Studio stops game');
+    await run(`
+      (()=>{const original=poisonStudio.serialize();
+      function generate(seed){document.querySelector('#ps-new').click();document.querySelector('#ps-new-seed').click();document.querySelector('#ps-map-seed').value=seed;document.querySelector('#ps-map-generate').click();return JSON.stringify(poisonStudio.serialize());}
+      const first=generate(42);if(generate(42)!==first)throw Error('Seed map is not deterministic');
+      if(generate(43)===first)throw Error('Different seeds produced identical maps');
+      const scene=JSON.parse(first);if(!scene.tiles.length||!scene.objs.some(o=>o[2]==='player')||!scene.objs.some(o=>o[2]==='flag'))throw Error('Generated map missing terrain or spawn/finish');
+      poisonStudio.deserialize(scene);if(JSON.stringify(poisonStudio.serialize())!==first)throw Error('Seed map round-trip failed');
+      poisonStudio.play();if(poisonRuntime.mode!=='running')throw Error('Seed map cannot play');
+      poisonStudio.open();poisonStudio.deserialize(original);})();
+    `);
     await run(`poisonRuntime.resume(); if(poisonRuntime.mode!=='stopped')throw Error('Studio allowed game to resume');
       window.smokeScene=poisonStudio.serialize(); poisonStudio.deserialize(JSON.parse(JSON.stringify(smokeScene)));
       if(JSON.stringify(poisonStudio.serialize())!==JSON.stringify(smokeScene))throw Error('JSON round-trip changed scene');
@@ -51,7 +61,7 @@ app.whenReady().then(async () => {
       poisonRuntime.restart();if(poisonRuntime.mode!=='running')throw Error('Restart failed');poisonRuntime.stop();`);
     assert.deepEqual(errors, [], 'renderer errors');
     console.log('PASS: startup, canvas, pause/resume/restart, Studio stop, Galaxy, undo/redo, custom objects, script approval, JSON round-trip.');
-  } catch (error) { console.error(error); clearTimeout(timeout); app.exit(1); return; }
+  } catch (error) { console.error(error, errors); clearTimeout(timeout); app.exit(1); return; }
   clearTimeout(timeout);
   app.exit(0);
 });
