@@ -2,7 +2,7 @@
   "name": "poison-creator-studio",
   "private": true,
   "version": "0.1.0",
-  "description": "Poison Creator Studio \u2014 Windows desktop editor and game",
+  "description": "Poison \u2014 Windows desktop editor and game",
   "type": "module",
   "main": "electron/main.cjs",
   "scripts": {
@@ -29,7 +29,7 @@
   },
   "build": {
     "appId": "com.poison.creatorstudio",
-    "productName": "Poison Creator Studio",
+    "productName": "Poison",
     "directories": {
       "output": "release"
     },
@@ -59,10 +59,10 @@
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
-      "artifactName": "Poison-Creator-Studio-Setup-${version}.${ext}"
+      "artifactName": "Poison-Setup-${version}.${ext}"
     },
     "portable": {
-      "artifactName": "Poison-Creator-Studio-Portable-${version}.${ext}"
+      "artifactName": "Poison-Portable-${version}.${ext}"
     }
   }
 }

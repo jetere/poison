@@ -5,7 +5,7 @@ const path = require('node:path');
 
 const MAX_PROJECT_BYTES = 25 * 1024 * 1024;
 const projectPaths = new Map();
-const product = 'Poison Creator Studio';
+const product = 'Poison';
 let mainWindow;
 
 function titleFor(filePath) {
@@ -36,7 +36,7 @@ function createMenu() {
       ...(app.isPackaged ? [] : [{ role: 'toggleDevTools' }]),
     ] },
     { label: 'Help', submenu: [
-      { label: 'About Poison Creator Studio', click: () => dialog.showMessageBox(mainWindow, {
+      { label: 'About Poison', click: () => dialog.showMessageBox(mainWindow, {
         type: 'info', title: product, message: product,
         detail: 'Desktop edition powered by Electron. Scenes are compatible with Poison JSON exports.',
       }) },
