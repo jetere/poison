@@ -1,0 +1,68 @@
+{
+  "name": "poison-creator-studio",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Poison Creator Studio \u2014 Windows desktop editor and game",
+  "type": "module",
+  "main": "electron/main.cjs",
+  "scripts": {
+    "assemble": "node scripts/assemble.mjs",
+    "dev": "npm run assemble && concurrently -k \"vite --host 127.0.0.1\" \"wait-on http://127.0.0.1:5173 && cross-env POISON_DEV_URL=http://127.0.0.1:5173 electron .\"",
+    "dev:web": "npm run assemble && vite --host 127.0.0.1",
+    "check": "npm run assemble && tsc --noEmit && node --check src/generated/poison-runtime.js && node --check electron/main.cjs && node --check electron/preload.cjs",
+    "build": "npm run check && vite build",
+    "prestart": "npm run build",
+    "start": "electron .",
+    "test:smoke": "npm run build && electron scripts/smoke.cjs",
+    "dist:win": "npm run build && electron-builder --win nsis portable",
+    "dist:win:installer": "npm run build && electron-builder --win nsis",
+    "dist:win:portable": "npm run build && electron-builder --win portable"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "cross-env": "^7.0.3",
+    "electron": "^37.2.0",
+    "electron-builder": "^26.0.12",
+    "typescript": "^5.9.2",
+    "vite": "^7.0.0",
+    "wait-on": "^8.0.4"
+  },
+  "build": {
+    "appId": "com.poison.creatorstudio",
+    "productName": "Poison Creator Studio",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "asar": true,
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "artifactName": "Poison-Creator-Studio-Setup-${version}.${ext}"
+    },
+    "portable": {
+      "artifactName": "Poison-Creator-Studio-Portable-${version}.${ext}"
+    }
+  }
+}

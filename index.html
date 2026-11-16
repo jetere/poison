@@ -1,0 +1,190 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"></head><body>
+<title>Poison — Creator Studio</title>
+<meta name="description" content="Poison by Jetere: an early stage platformer prototype with tunable movement, procedural levels and a 3D pixel camera.">
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Pixelify+Sans:wght@400;500;600;700&family=Silkscreen:wght@400;700&display=swap">
+
+
+<div class="wrap">
+  <header>
+    <h1>Poison <small style="font-size:.5em;font-weight:400;opacity:.7">by Jetere</small></h1>
+    <p><b>Early stage:</b> this is a work-in-progress prototype, so expect rough edges and frequent changes. A playable movement prototype. Run, jump, dash in eight directions, and slide down walls to wall jump. Every number behind the movement is a slider, and changes apply instantly while you play.</p>
+  </header>
+
+  <div class="lab">
+    <div class="col">
+      <div class="stage"><canvas id="game" tabindex="0" aria-label="Playfield. Click it, then use the keyboard controls listed below."></canvas></div>
+
+      <div class="hud" id="hud">
+        <div class="cell"><span class="k">State</span><span class="v" id="h-state">NORMAL</span></div>
+        <div class="cell"><span class="k">Speed X</span><span class="v" id="h-vx">0</span></div>
+        <div class="cell"><span class="k">Speed Y</span><span class="v" id="h-vy">0</span></div>
+        <div class="cell"><span class="k">Dashes</span><span class="pips" id="h-pips"></span></div>
+        <div class="cell"><span class="k">Contact</span><span class="v" id="h-flags">air</span></div>
+        <div class="cell"><span class="k">Goal</span><span class="v" id="h-prog">0%</span></div>
+        <div class="cell"><span class="k">Gems</span><span class="v" id="h-gems">0 / 0</span></div>
+        <div class="cell"><span class="k">Run</span><span class="v" id="h-run">0:00</span></div>
+        <div class="cell"><span class="k">Music</span><span class="v" id="h-mus">-</span></div>
+      </div>
+
+      <div class="keys">
+        <div><b>&larr; &rarr; &uarr; &darr;</b><b>WASD</b>move</div>
+        <div><b>Space</b><b>C</b><b>K</b>jump</div>
+        <div><b>X</b><b>Shift</b><b>J</b>dash</div>
+        <div><b>R</b>respawn</div>
+      </div>
+      <p class="note">If the keys do nothing, click the playfield once so it has focus.</p>
+
+      <div class="runtimebar" aria-label="Runtime controls">
+        <button class="btn" id="b-pause" title="Pause updates and music">Pause</button>
+        <button class="btn" id="b-resume" title="Resume the current level">Resume</button>
+        <button class="btn" id="b-stop" title="Stop the game loop to save resources">Stop</button>
+        <button class="btn primary" id="b-restart" title="Reload the current level and play again">Restart level</button>
+        <span class="state running" id="rt-state">Running</span>
+        <div class="note-lite">Use Pause or Stop while designing levels so the game is not wasting CPU in the background.</div>
+      </div>
+
+      <div class="touch" aria-label="Touch controls">
+        <div class="pad">
+          <button data-act="up" aria-label="Up">UP</button>
+          <button data-act="left" aria-label="Left">LEFT</button>
+          <button data-act="right" aria-label="Right">RIGHT</button>
+          <button data-act="down" aria-label="Down">DOWN</button>
+        </div>
+        <div class="acts">
+          <button data-act="jump">JUMP</button>
+          <button data-act="dash">DASH</button>
+        </div>
+      </div>
+    </div>
+
+    <aside class="panel">
+      <div class="tabs" role="tablist">
+        <button role="tab" id="tab-tune" aria-selected="true" aria-controls="pane-tune">Tune</button>
+        <button role="tab" id="tab-mech" aria-selected="false" aria-controls="pane-mech">Mechanics</button>
+      </div>
+
+      <div class="pane" id="pane-tune" role="tabpanel" aria-labelledby="tab-tune">
+        <div>
+          <h2 class="sect-title">Level</h2>
+          <div class="lvl">
+            <button class="btn primary" id="b-new">Open level editor</button>
+            <button class="btn" id="b-apply">Restart level</button>
+          </div>
+          <div class="lvl" style="margin-top:8px">
+            <label for="themeSel">Color theme</label>
+            <select id="themeSel" style="font:13px var(--font-body);color:var(--fg);background:var(--panel-2);border:1px solid var(--line);padding:4px 6px">
+              <option value="auto">Changes every level</option>
+              <option value="0">Dusk Caves</option><option value="1">Neon Forest</option><option value="2">Crimson Foundry</option>
+              <option value="3">Deep Ocean</option><option value="4">Candy Void</option><option value="5">Ash Monolith</option>
+            </select>
+          </div>
+          
+          
+          <p class="note" id="lvl-info" style="margin-top:8px"></p>
+        </div>
+        <div>
+          <h2 class="sect-title">Presets</h2>
+          <div class="chips" id="presets"></div>
+        </div>
+        <div id="groups" style="display:flex;flex-direction:column;gap:8px"></div>
+        <div>
+          <h2 class="sect-title">Display</h2>
+          <div class="toggles">
+            <label for="v_shape">Character
+              <select id="v_shape">
+                <option value="virus">Virus sprite (animated)</option>
+                <option value="square">Square</option>
+                <option value="circle">Circle</option>
+                <option value="triangle">Triangle</option>
+                <option value="diamond">Diamond</option>
+              </select>
+            </label>
+            <label for="v_sound"><input type="checkbox" id="v_sound"> Sound effects</label>
+            <label for="v_music"><input type="checkbox" id="v_music"> Music</label>
+            <label class="bl">Music track (mp3, ogg, wav) <input type="file" id="v_mfile" accept="audio/*"></label>
+            <label class="bl">or a direct link to a track <input type="text" id="v_murl" placeholder="https://.../song.mp3" style="width:100%"></label>
+            <label for="v_mvol" class="bl">Music volume <input type="range" id="v_mvol" min="0" max="1" step="0.05"><output id="o_mvol" for="v_mvol"></output></label>
+            <label for="v_vol" class="bl">Volume <input type="range" id="v_vol" min="0" max="1" step="0.05"><output id="o_vol" for="v_vol"></output></label>
+            <label for="v_bloom" class="bl">Bloom <input type="range" id="v_bloom" min="0" max="2" step="0.05"><output id="o_bloom" for="v_bloom"></output></label>
+            <label for="v_cam"><input type="checkbox" id="v_cam"> Close camera (off = wide view, wheel zooms)</label>
+            <label for="v_trail"><input type="checkbox" id="v_trail"> Dash afterimages</label>
+            <label for="v_shake"><input type="checkbox" id="v_shake"> Screen shake</label>
+            <label for="v_hit"><input type="checkbox" id="v_hit"> Show hitbox and wall checks</label>
+          </div>
+        </div>
+        <div class="btns">
+          <button class="btn primary" id="b-respawn">Respawn</button>
+          <button class="btn" id="b-reset">Reset all values</button>
+          <button class="btn" id="b-copy">Copy values</button>
+        </div>
+        <textarea id="exp" readonly hidden aria-label="Exported values"></textarea>
+        <p class="note">Double-click a slider label to reset that one value. Values you have changed show in the accent color and are remembered in this browser.</p>
+      </div>
+
+      <div class="pane mech" id="pane-mech" role="tabpanel" aria-labelledby="tab-mech" hidden>
+        <section>
+          <h3>Run</h3>
+          <p>Horizontal speed accelerates toward a top speed. When you are going faster than top speed (after a dash or hyper jump) it decays at the slower reduce rate instead. In the air, all of this is scaled by the air multiplier. Tune with <code>maxRun</code>, <code>runAccel</code>, <code>runReduce</code>, <code>airMult</code>.</p>
+        </section>
+        <section>
+          <h3>Jump</h3>
+          <p>Jumping sets an upward speed and holds it while the button stays down, up to a time limit, so a tap is short and a hold is tall. Near the apex gravity halves, which makes the top of the arc feel floaty. Holding down while falling raises the fall cap. Tune with <code>jumpSpeed</code>, <code>varJumpTime</code>, <code>halfGravThreshold</code>, <code>gravity</code>, <code>maxFall</code>.</p>
+        </section>
+        <section>
+          <h3>Forgiveness</h3>
+          <p>Coyote time lets you jump a moment after leaving a ledge. The jump buffer remembers a press made just before landing. Corner correction nudges you around a corner by a few pixels instead of stopping you dead. Tune with <code>coyote</code>, <code>jumpBuffer</code>, <code>cornerCorrection</code>.</p>
+        </section>
+        <section>
+          <h3>Dash</h3>
+          <p>One burst in any of eight directions at fixed speed for a short time, with a brief freeze at the start. Direction comes from your held input, or the way you face. You get a limited number of dashes, refilled by touching the ground or a crystal. Tune with <code>dashSpeed</code>, <code>dashTime</code>, <code>endDashSpeed</code>, <code>dashFreeze</code>, <code>maxDashes</code>.</p>
+        </section>
+        <section>
+          <h3>Super and hyper jumps</h3>
+          <p>Jump while a dash is still active and you are on the ground. A flat dash gives a super jump: high and fast. A downward diagonal dash gives a hyper jump: low and very fast. Tune with <code>superJumpSpeed</code>, <code>hyperJumpSpeed</code>.</p>
+        </section>
+        <section>
+          <h3>Wall slide and wall jump</h3>
+          <p>Pressing into a wall while falling slows the fall; it starts very slow and speeds up the longer you hang on. A wall jump works within a few pixels of a wall, throws you away from it, and briefly overrides your steering so you cannot cancel it instantly. Tune with <code>wallSlideStart</code>, <code>wallSlideTime</code>, <code>wallJumpCheck</code>, <code>wallJumpHSpeed</code>, <code>wallJumpForceTime</code>.</p>
+        </section>
+        <section>
+          <h3>Wall slide</h3>
+          <p>Grabbing is removed. Touch a wall in the air to slide down it slowly, and jump to kick off it. Tune the wall sliders in the Wall group.</p>
+        </section>
+        <section>
+          <h3>3D camera</h3>
+          <p>The level is real 3D geometry: every block is a slab with depth, with spires far behind it and dark pillars in front. A perspective camera follows the player and moves in all three dimensions. It orbits left and right as you run, swings hard around you when you dash, tilts down as you fall, dips when you land, rolls slightly with your speed, pulls back at speed and pushes in on a dash. Everything is rendered pixel by pixel at 320 by 180, so it keeps the pixel look. Tune with <code>camDist</code>, <code>camSwing</code> and <code>camDepth</code>, or use the mouse wheel to change distance.</section>
+        <section>
+          <h3>Springs and crumbling blocks</h3>
+          <p>Pink springs launch you upward and refill your dash. Pale blocks in floating platforms shake when you stand on them, drop away after a short delay, then come back. Grass bends away from you as you pass. Tune with <code>springSpeed</code>, <code>crumbleDelay</code>, <code>crumbleRespawn</code>.</p>
+        </section>
+        <section>
+          <h3>Music</h3>
+          <p>A short original demo track plays in the background. To use your own, pick an audio file under Display or paste a direct link to a track, and it replaces the demo and loops while you play. Free, license-friendly sources include OpenGameArt, Free Music Archive and Pixabay Music. Check the license of whatever you use.</p>
+        </section>
+        <section>
+          <h3>Camera</h3>
+          <p>The camera follows the player with a critically damped spring, so it eases in and out without overshooting. It leans toward where you are heading and looks down when you fall fast. Tune with <code>camSmooth</code>, <code>camLook</code> and the dash shake sliders.</p>
+        </section>
+        <section>
+          <h3>Journey, zones and gems</h3>
+          <p>Every level has its own color theme, and the theme changes each time you start a new level (six in rotation: Dusk Caves, Neon Forest, Crimson Foundry, Deep Ocean, Candy Void and Ash Monolith). You can also lock one under Level. Each course is split into four named zones with their own tints, and the difficulty ramps up as you go. Early on it is mostly runs, small gaps and spikes. Later come updraft fans over wide pits, patrolling saw blades, staircases of crumbling blocks, spring hops over spike strips, and big climbs. Gold gems sit in risky spots, such as above spike strips and high over pits. Checkpoints appear regularly and before the hard set pieces. Your time, deaths and gems are shown under the playfield, and the flag shows your result.</p>
+        </section>
+        <section>
+          <h3>Procedural levels</h3>
+          <p>Each seed builds a different course from left to right, now 320 tiles long by default (up to 768): flat runs, spike patches, pits, floating platforms, steps, drops, and tall climbs sized to the default stamina. Every section ends on a few tiles of flat ground. Checkpoints appear along the way, and reaching the flag loads the next seed. If you change the sliders a lot, some seeds may become impossible or trivial.</p>
+        </section>
+        <section>
+          <h3>Hazards</h3>
+          <p>Spikes and falling out of the world send you back to the last checkpoint. Red saw blades patrol along flat runs, some sliding up and down: jump, dash or time a run under them, and a touch sends you back. Walls of cracked blocks with red marks can be smashed by dashing into them. Conveyor belts push you along, so run with or against them. Wind zones push you sideways in the air, low gravity bubbles make you float, and crushers slam down after a red flicker, so slip under them while they are up. Obstacles are noisy and shake the view as you get near: crushers tick, slam and rattle the screen, lasers beep and zap, saws buzz louder the closer you are, and stalactites chime before they fall. Exploration: the flag is hidden somewhere far above or deep below, so follow the goal arrow in the HUD. Tall glowing gates and uncrossable walls block the path, and what opens them is hidden elsewhere: look for dark holes in the ground, drop down, and ride the lift platform back up. Each hole leads to a secret chamber holding a lever, a key, one of three numbered levers (they jam until the lower numbers are pulled, so you may have to come back), a portal that links to the far side of a wall, or just gems. Matching colors link a trigger to its gate. The minimap in the corner remembers where you have been (press M to hide it). Blinking pink and cyan platforms appear in turns over a pit, so hop across on the beat. Wall turrets fire slow shots along the floor, and lasers can be vertical, diagonal or horizontal. Lasers switch on after a flicker, pendulum saws swing across the path, and in caves stalactites drop when you walk under them. Each level uses a random mix of these, and its route climbs and drops over a tall map. Updraft shafts (cyan streaks) sit at the foot of very tall walls and carry you up to the ledge. Glowing moving platforms slide across wide pits, and vertical lifts carry you up beside a wall. Stand on them and they take you along. Dashes refill only on the ground or on springs.</p>
+        </section>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<script type="module" src="/src/main.ts"></script>
+
+</body></html>

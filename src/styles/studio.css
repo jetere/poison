@@ -1,0 +1,341 @@
+
+/* Layout: playfield on the left, tuning panel on the right; stacks on phones.
+   Look: one committed dark twilight palette, so no light variant. */
+:root {
+  color-scheme: dark;
+  --bg: #05040b;
+  --panel: #0d0b1a;
+  --panel-2: #161329;
+  --line: #262150;
+  --fg: #ece9ff;
+  --muted: #9a96c8;
+  --accent: #ff6f91;
+  --cool: #6fc8ff;
+  --solid: #1b1740;
+  --solid-top: #4d45a8;
+  --sky1: #03020a;
+  --sky2: #0e0922;
+  --mtn1: #0f0b25;
+  --mtn2: #0a0719;
+  --hazard: #ffb347;
+  --crystal: #82f5d6;
+  --spring: #ff9bf0;
+  --grass: #3fd9b0;
+  --gem: #ffd86b;
+  --font-display: 'Silkscreen', 'Courier New', monospace;
+  --font-body: 'IBM Plex Sans', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font: 14px/1.5 var(--font-body);
+  padding-block: 20px 40px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1640px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+header h1 { font: 700 22px/1.2 var(--font-display); letter-spacing: 0.04em; margin: 0 0 4px; text-wrap: balance; }
+header p { margin: 0; color: var(--muted); max-width: 62ch; }
+.lab { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; align-items: start; }
+.col { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.stage { border: 1px solid var(--line); background: var(--sky1); line-height: 0; }
+canvas { width: 100%; aspect-ratio: 16 / 9; max-width: 100%; image-rendering: pixelated; display: block; outline: none; }
+canvas:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.hud { display: grid; grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); }
+.cell { background: var(--panel); padding: 8px 10px; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.cell .k { font: 400 10px/1 var(--font-display); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.cell .v { font: 500 14px/1.2 var(--font-mono); font-variant-numeric: tabular-nums; }
+.pips { display: flex; gap: 4px; min-height: 17px; align-items: center; }
+.pips i { width: 12px; height: 12px; border: 2px solid var(--cool); background: transparent; display: block; }
+.pips i.on { background: var(--accent); border-color: var(--accent); }
+.bar { height: 10px; background: var(--bg); border: 1px solid var(--line); margin-top: 3px; }
+.bar i { display: block; height: 100%; width: 100%; background: var(--crystal); }
+.bar i.low { background: var(--hazard); }
+
+.keys { display: flex; flex-wrap: wrap; gap: 6px 18px; color: var(--muted); font-size: 12.5px; }
+.keys b { font: 500 11px var(--font-mono); color: var(--fg); background: var(--panel-2); border: 1px solid var(--line); padding: 1px 6px; margin-right: 2px; white-space: nowrap; }
+.keys div { white-space: nowrap; }
+
+.touch { display: none; grid-template-columns: 1fr 1fr; gap: 12px; user-select: none; -webkit-user-select: none; }
+@media (pointer: coarse) { .touch { display: grid; } }
+.pad { display: grid; grid-template-columns: repeat(3, 56px); grid-template-rows: repeat(3, 56px); gap: 6px; justify-content: start; }
+.acts { display: grid; grid-template-columns: repeat(2, 72px); gap: 8px; justify-content: end; align-content: start; }
+.touch button { touch-action: none; font: 700 12px var(--font-display); letter-spacing: 0.05em; color: var(--fg); background: var(--panel-2); border: 1px solid var(--line); min-height: 56px; padding: 0; }
+.touch button:active, .touch button.down { background: var(--solid); border-color: var(--solid-top); }
+.pad [data-act="up"] { grid-area: 1 / 2; } .pad [data-act="left"] { grid-area: 2 / 1; }
+.pad [data-act="right"] { grid-area: 2 / 3; } .pad [data-act="down"] { grid-area: 3 / 2; }
+.acts [data-act="grab"] { grid-column: 1 / 3; }
+
+.panel { background: var(--panel); border: 1px solid var(--line); position: sticky; top: 12px; max-height: calc(100vh - 24px); overflow: auto; min-width: 0; }
+.tabs { display: flex; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: var(--panel); z-index: 2; }
+.tabs button { flex: 1; font: 700 12px var(--font-display); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); background: none; border: 0; border-bottom: 2px solid transparent; padding: 12px 8px; cursor: pointer; }
+.tabs button[aria-selected="true"] { color: var(--fg); border-bottom-color: var(--accent); }
+.tabs button:focus-visible, .btn:focus-visible, .chip:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.pane { padding: 14px; display: flex; flex-direction: column; gap: 14px; }
+.sect-title { font: 400 10px/1 var(--font-display); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin: 0 0 8px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip, .btn { font: 500 12.5px var(--font-body); color: var(--fg); background: var(--panel-2); border: 1px solid var(--line); padding: 6px 10px; cursor: pointer; }
+.chip:hover, .btn:hover { border-color: var(--solid-top); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #2a0d14; font-weight: 600; }
+.btns { display: flex; flex-wrap: wrap; gap: 6px; }
+
+details { border: 1px solid var(--line); background: var(--bg); }
+summary { cursor: pointer; padding: 9px 12px; font: 700 11px var(--font-display); letter-spacing: 0.08em; text-transform: uppercase; list-style: none; display: flex; justify-content: space-between; }
+summary::-webkit-details-marker { display: none; }
+summary::after { content: '+'; color: var(--muted); }
+details[open] summary::after { content: '\2212'; }
+summary:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.rows { padding: 2px 12px 12px; display: flex; flex-direction: column; gap: 10px; }
+.row { display: grid; grid-template-columns: 1fr auto; column-gap: 8px; row-gap: 2px; align-items: baseline; }
+.row label { font-size: 13px; cursor: default; }
+.row.changed label { color: var(--accent); }
+.row output { font: 500 12px var(--font-mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+.row.changed output { color: var(--accent); }
+.row input[type="range"] { grid-column: 1 / 3; width: 100%; accent-color: var(--accent); margin: 2px 0 0; }
+.toggles { display: grid; gap: 8px; }
+.toggles label { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.toggles select { font: 13px var(--font-body); color: var(--fg); background: var(--panel-2); border: 1px solid var(--line); padding: 4px 6px; }
+.toggles input[type="checkbox"] { accent-color: var(--accent); width: 15px; height: 15px; }
+textarea { width: 100%; min-height: 120px; font: 12px var(--font-mono); color: var(--fg); background: var(--bg); border: 1px solid var(--line); }
+.note { color: var(--muted); font-size: 12.5px; margin: 0; }
+.lvl { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.lvl label { font-size: 13px; }
+.lvl input[type="number"] { width: 92px; font: 500 13px var(--font-mono); color: var(--fg); background: var(--bg); border: 1px solid var(--line); padding: 5px 6px; }
+.toggles label.bl { display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: center; }
+.toggles label.bl input { width: 100%; accent-color: var(--accent); }
+.toggles label.bl output { font: 500 12px var(--font-mono); color: var(--muted); min-width: 3ch; text-align: right; }
+
+.mech h3 { font: 700 12px var(--font-display); letter-spacing: 0.06em; margin: 0 0 3px; text-transform: uppercase; }
+.mech p { margin: 0; color: var(--muted); font-size: 13px; }
+.mech p code { font: 500 11.5px var(--font-mono); color: var(--fg); }
+.mech section { padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+.mech section:last-child { border: 0; padding-bottom: 0; }
+
+@media (max-width: 900px) {
+  .lab { grid-template-columns: minmax(0, 1fr); }
+  .panel { position: static; max-height: none; overflow: visible; }
+  .tabs { position: static; }
+}
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+/* POISON STUDIO: integrated, self-contained scene editor */
+#poison-studio{--se-bg:#080b15;--se-panel:#101527;--se-raised:#171e32;--se-border:#303b55;--se-text:#e9efff;--se-muted:#91a1be;--se-accent:#fc799c;--se-blue:#70caff;position:fixed;inset:0;z-index:9999;display:none;flex-direction:column;gap:0;background:var(--se-bg);color:var(--se-text);font:13px/1.45 'IBM Plex Sans',system-ui,sans-serif;user-select:none;isolation:isolate}
+#poison-studio *{box-sizing:border-box}
+#poison-studio button,#poison-studio input,#poison-studio select{font:inherit}
+#poison-studio button{border:1px solid var(--se-border);background:var(--se-raised);color:var(--se-text);border-radius:6px;cursor:pointer;padding:6px 10px;white-space:nowrap;min-height:31px}
+#poison-studio button:hover{background:#24314d;border-color:#59708d}
+#poison-studio button:focus-visible,#poison-studio input:focus-visible,#poison-studio select:focus-visible{outline:2px solid var(--se-blue);outline-offset:1px}
+#poison-studio button:disabled{opacity:.35;cursor:default}
+#poison-studio .ps-primary{background:#ec7192;color:#230b18;border-color:#ec7192;font-weight:700}
+#poison-studio .ps-primary:hover{background:#ffa0b8}
+#poison-studio .ps-tool.active,#poison-studio .ps-item.active,#poison-studio .ps-tab.active{color:#fff;background:#302744;border-color:#ff82a6}
+#poison-studio .ps-plain{background:none;border-color:transparent}
+#poison-studio .ps-bar{display:flex;align-items:center;gap:7px;flex-wrap:wrap;padding:9px 13px;min-height:52px;background:var(--se-panel);border-bottom:1px solid var(--se-border)}
+#poison-studio .ps-brand{font:700 18px 'Silkscreen',monospace;letter-spacing:.05em;color:#ff8cab;margin-right:7px}
+#poison-studio .ps-brand small{font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.08em;color:var(--se-muted);display:block;margin-top:-1px}
+#poison-studio .ps-divider{width:1px;height:27px;background:var(--se-border);margin:0 3px;flex:none}
+#poison-studio .ps-grow{flex:1;min-width:6px}
+#poison-studio input:not([type=checkbox]),#poison-studio select{border:1px solid var(--se-border);border-radius:6px;background:#0b1020;color:var(--se-text);padding:6px 8px;min-height:31px;min-width:0}
+#poison-studio .ps-name{width:150px}
+#poison-studio #ps-library{width:150px;max-width:18vw}
+#poison-studio .ps-sub{min-height:42px;padding-block:6px;background:#0c1221}
+#poison-studio .ps-tool{font-size:12px;min-width:38px}
+#poison-studio .ps-shortcut{color:#8e99b5;margin-left:4px;font:10px 'IBM Plex Mono',monospace}
+#poison-studio .ps-work{display:grid;grid-template-columns:254px minmax(0,1fr) 265px;flex:1;min-height:0;overflow:hidden}
+#poison-studio .ps-sidebar{display:flex;min-height:0;flex-direction:column;background:var(--se-panel);border-right:1px solid var(--se-border);overflow:hidden}
+#poison-studio .ps-sidebar.right{border-right:0;border-left:1px solid var(--se-border)}
+#poison-studio .ps-tabs{display:flex;gap:4px;padding:8px;border-bottom:1px solid var(--se-border)}
+#poison-studio .ps-tab{flex:1}
+#poison-studio .ps-scroll{flex:1;overflow:auto;min-height:0;padding:11px}
+#poison-studio .ps-section{font:700 10px 'IBM Plex Mono',monospace;color:#a3b4d2;letter-spacing:.09em;text-transform:uppercase;margin:17px 0 8px}
+#poison-studio .ps-section:first-child{margin-top:0}
+#poison-studio .ps-search{width:100%;margin-bottom:9px}
+#poison-studio .ps-item{display:flex;align-items:center;gap:9px;width:100%;text-align:left;margin:3px 0;border:1px solid transparent;background:transparent;padding:6px}
+#poison-studio .ps-item .ps-symbol{border-radius:5px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;color:#0b1020;font-weight:900;font-size:16px;flex:none}
+#poison-studio .ps-item .ps-itemlabel{font-size:12px;line-height:1.2;white-space:normal}
+#poison-studio .ps-item .ps-itemsub{font-size:10px;color:var(--se-muted)}
+#poison-studio .ps-scene-item{display:flex;gap:7px;align-items:center;padding:6px;border:1px solid transparent;cursor:pointer;border-radius:5px}
+#poison-studio .ps-scene-item:hover{background:#1b2740}
+#poison-studio .ps-scene-item.selected{border-color:var(--se-accent);background:#30263d}
+#poison-studio .ps-scene-item .ps-scene-pos{font:10px 'IBM Plex Mono',monospace;color:var(--se-muted);margin-left:auto}
+#poison-studio .ps-viewport{position:relative;min-width:0;min-height:0;overflow:hidden;background:#0c1020}
+#poison-studio #ps-canvas{position:absolute;inset:0;display:block;width:100%;height:100%;max-width:none;aspect-ratio:auto;touch-action:none;cursor:crosshair;outline:none}
+#poison-studio .ps-float{position:absolute;pointer-events:none;border:1px solid #45516c;background:rgba(14,19,34,.93);border-radius:6px;color:#b3c1df;padding:6px 9px;backdrop-filter:blur(5px)}
+#poison-studio .ps-viewport-label{left:12px;top:12px;display:flex;gap:10px}
+#poison-studio .ps-minimap{position:absolute;right:14px;top:14px;border:1px solid #53617e;border-radius:7px;background:#090e1c;box-shadow:0 8px 30px #0009;cursor:crosshair;width:186px;height:116px}
+#poison-studio .ps-hint{bottom:12px;left:12px;max-width:calc(100% - 24px)}
+#poison-studio .ps-hint kbd{font:10px 'IBM Plex Mono',monospace;border:1px solid #53617e;border-radius:3px;padding:1px 3px;color:#e5edff}
+#poison-studio .ps-status{display:flex;gap:18px;align-items:center;min-height:27px;padding:5px 13px;background:var(--se-panel);border-top:1px solid var(--se-border);color:var(--se-muted);font:11px 'IBM Plex Mono',monospace;white-space:nowrap;overflow:hidden}
+#poison-studio .ps-status #ps-status-msg{color:#d0daed;overflow:hidden;text-overflow:ellipsis}
+#poison-studio .ps-status .ps-grow{overflow:hidden}
+#poison-studio .ps-property{margin:12px 0;display:flex;flex-direction:column;gap:4px}
+#poison-studio .ps-property label{font-size:12px;color:#b5c2da}
+#poison-studio .ps-property input,#poison-studio .ps-property select{width:100%}
+#poison-studio .ps-coords{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+#poison-studio .ps-flex{display:flex;gap:6px;flex-wrap:wrap}
+#poison-studio .ps-muted{color:var(--se-muted);font-size:12px;line-height:1.6}
+#poison-studio .ps-stat{display:grid;grid-template-columns:1fr auto;gap:6px;font-size:12px;padding:7px 0;border-bottom:1px solid #28334a}
+#poison-studio .ps-chip{font:11px 'IBM Plex Mono',monospace;border:1px solid var(--se-border);border-radius:4px;padding:3px 6px;color:#b8d1f7}
+#poison-studio .ps-toggle{display:flex;align-items:center;gap:8px;margin:8px 0;font-size:12px}
+#poison-studio input[type=checkbox]{accent-color:#ff7e9f}
+#poison-studio .ps-note{margin-top:10px;font-size:11px;color:var(--se-muted)}
+#poison-studio .ps-modal{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:#01030bd6;z-index:5;padding:15px}
+#poison-studio .ps-modal.open{display:flex}
+#poison-studio .ps-modal-card{background:#121a2d;border:1px solid #51607d;border-radius:10px;box-shadow:0 22px 80px #000c;padding:20px;width:min(550px,98%);max-height:85vh;overflow:auto}
+#poison-studio .ps-modal-card h2{font:700 19px 'Silkscreen',monospace;margin:0 0 12px}
+#poison-studio .ps-modal-card p{line-height:1.6;color:#c2cee2}
+#poison-studio .ps-helpgrid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+#poison-studio .ps-helpgrid div{background:#1c2940;padding:10px;border-radius:6px;font-size:12px}
+#poison-studio .ps-template{width:100%;text-align:left;margin:5px 0;padding:10px}
+@media(max-width:1150px){#poison-studio .ps-work{grid-template-columns:210px minmax(0,1fr) 222px}#poison-studio .ps-name{width:105px}#poison-studio .ps-bar{gap:5px}}
+@media(max-width:780px){#poison-studio .ps-work{grid-template-columns:160px minmax(0,1fr)}#poison-studio .ps-sidebar.right{position:absolute;right:0;bottom:28px;top:98px;width:235px;z-index:3;box-shadow:-5px 3px 20px #000b}#poison-studio .ps-minimap{width:120px;height:80px}}
+
+
+/* Poison Creator: reusable objects, components and script authoring */
+#poison-studio .ps-customhead{display:flex;gap:12px;align-items:center;border:1px solid #43536f;border-radius:8px;background:#182338;padding:10px;margin-bottom:10px}
+#poison-studio .ps-customhead b{font-size:15px}
+#poison-studio .ps-customicon{width:44px;height:44px;border-radius:8px;color:#151b31;font-size:29px;text-align:center;line-height:44px;font-weight:800;flex:none}
+#poison-studio .ps-component{border:1px solid #364562;border-radius:7px;background:#131d31;margin:9px 0;overflow:hidden}
+#poison-studio .ps-component>summary{padding:10px 12px;border-bottom:1px solid #364562;font-weight:700;font-size:12px;cursor:pointer;background:#172239;list-style:none}
+#poison-studio .ps-component>summary::after{float:right;content:'▾';color:#afc1d9}
+#poison-studio .ps-component:not([open])>summary{border-bottom:0}
+#poison-studio .ps-component:not([open])>summary::after{content:'▸'}
+#poison-studio .ps-component>.ps-editrow,#poison-studio .ps-component>.ps-checkrow,#poison-studio .ps-component>.ps-coords,#poison-studio .ps-component>.ps-flex,#poison-studio .ps-component>.ps-note,#poison-studio .ps-component>.ps-sprite-preview{margin:10px}
+#poison-studio .ps-editrow{display:flex;flex-direction:column;gap:5px;font-size:12px;color:#b8c8e3;margin:10px 0}
+#poison-studio .ps-editrow input,#poison-studio .ps-editrow select{width:100%}
+#poison-studio .ps-checkrow{display:flex;gap:8px;align-items:center;font-size:12px;color:#d4e1f6;margin:10px 0}
+#poison-studio .ps-script-editor{display:block;width:calc(100% - 20px);max-width:none;margin:10px;min-height:195px;background:#070e1d;color:#bde5f4;border:1px solid #526584;border-radius:5px;font:12px/1.5 'IBM Plex Mono',monospace;padding:9px;white-space:pre;tab-size:2;resize:vertical;user-select:text}
+#poison-studio .ps-codehelp{font:12px/1.6 'IBM Plex Mono',monospace;white-space:normal;background:#0b1326;border:1px solid #3b4e6a;border-radius:7px;padding:12px;color:#c2e7f5;user-select:text}
+#poison-studio .ps-codehelp code{color:#f2b1c7}
+#poison-studio .ps-creator-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+#poison-studio .ps-creator-grid button{white-space:normal;margin:0;text-align:left;line-height:1.5;min-height:64px}
+#poison-studio .ps-prefab-action{font-size:10px!important;min-height:20px!important;color:#97bedf!important;border:0!important;padding:2px 7px!important;background:none!important;margin-top:-3px;margin-left:34px}
+#poison-studio .ps-script-on{border-color:#f3bc64!important;background:#483823!important;color:#ffdfab!important}
+#poison-studio .ps-sprite-preview{display:flex;align-items:center;gap:12px}
+#poison-studio .ps-sprite-preview img{width:54px;height:54px;object-fit:contain;image-rendering:pixelated;background:#060c1c;border:1px solid #4f6280}
+
+
+/* Creator Studio: one readable pixel type family, except source code */
+#poison-studio{--pixel:'Pixelify Sans','Silkscreen','Courier New',monospace;font:500 14px/1.5 var(--pixel)!important}
+#poison-studio button,#poison-studio input,#poison-studio select,#poison-studio textarea:not(.ps-script-editor),#poison-studio label,
+#poison-studio span,#poison-studio div,#poison-studio p,#poison-studio h2,#poison-studio h3,#poison-studio small,
+#poison-studio output,#poison-studio b,#poison-studio kbd,#poison-studio summary{font-family:var(--pixel)!important}
+#poison-studio .ps-script-editor,#poison-studio .ps-codehelp,#poison-studio .ps-codehelp *,#poison-studio textarea.ps-script-editor{font:12.5px/1.65 'IBM Plex Mono','Courier New',monospace!important;letter-spacing:0!important;text-transform:none!important}
+#poison-studio .ps-item .ps-itemlabel{font-size:14px!important;line-height:1.3!important}
+#poison-studio .ps-item .ps-itemsub{font-size:12px!important;line-height:1.35!important}
+#poison-studio .ps-section{font-size:12px!important;letter-spacing:.04em!important}
+#poison-studio .ps-muted,#poison-studio .ps-note{font-size:13px!important;line-height:1.5!important}
+#poison-studio .ps-status{font-size:12px!important}
+#poison-studio .ps-property label,#poison-studio .ps-editrow span,#poison-studio .ps-checkrow{font-size:14px!important}
+#poison-studio button{font-size:12px!important;line-height:1.3!important}
+#poison-studio .ps-brand{font-family:'Silkscreen',var(--pixel)!important;font-size:18px!important}
+#poison-studio .ps-brand small{font-family:'Silkscreen',var(--pixel)!important;font-size:10px!important}
+/* Remove repeating glow/floating motion from every control and logo. */
+#poison-studio .ps-createbig,#poison-studio .ps-brandwrap::after{animation:none!important;filter:none!important;transform:none!important}
+#poison-studio .ps-primary::after,#poison-studio .ps-tool.active::after,#poison-studio .ps-tab.active::after{content:none!important;animation:none!important}
+#poison-studio button{transition:none!important}
+#poison-studio button:hover,#poison-studio button:active{transform:none!important}
+/* Featured actions: specific one-shot pixel effects, not continuous button animations. */
+#poison-studio #ps-create,#poison-studio #ps-theme-toggle,#poison-studio #ps-play{overflow:visible;isolation:isolate}
+#poison-studio #ps-create:hover{animation:psForgeSword .78s steps(5,end) 1!important}
+#poison-studio #ps-create:focus-visible{box-shadow:0 0 0 2px #ffe49a,4px 4px 0 #a46ce2!important}
+#poison-studio #ps-theme-toggle:hover{animation:psCrystalGlint .65s steps(4,end) 1!important}
+#poison-studio #ps-theme-toggle.active{color:#ffe6a3;border-color:#e5b9fa;background:linear-gradient(180deg,#57437e,#352959)!important}
+#poison-studio #ps-play:hover{animation:psPlayRune .6s steps(5,end) 1!important}
+#poison-studio #ps-save.ps-just-saved{animation:psSaveFlash .5s steps(4,end) 1!important}
+#poison-studio .ps-object-reveal{position:relative;animation:psObjectCardEnter .26s steps(4,end) both!important;overflow:visible}
+#poison-studio .ps-object-reveal::after{content:'✦';position:absolute;font:400 24px 'Silkscreen',monospace;right:32px;top:18px;color:#ffe58c;text-shadow:-9px 9px 0 #fff2b2,9px 6px 0 #9ff9fe,0 0 12px #ffd979;pointer-events:none;animation:psSwordSpark .74s steps(6,end) 1 both}
+#poison-studio .ps-object-reveal .ps-creator-grid .ps-template{animation:psItemReveal .32s steps(4,end) 1 both}
+#poison-studio .ps-object-reveal .ps-creator-grid .ps-template:nth-child(2n){animation-delay:.06s}
+#poison-studio .ps-object-reveal .ps-creator-grid .ps-template:nth-child(3n){animation-delay:.12s}
+@keyframes psForgeSword{0%{box-shadow:2px 2px 0 #463054}20%{box-shadow:0 0 0 3px #ffd58b,5px 0 0 #fff6c0}50%{box-shadow:0 0 0 5px #b2a2ff,7px -4px 0 #f1eaff}80%{box-shadow:0 0 0 2px #7be8ff,0 0 14px #b8b0ff}100%{box-shadow:2px 2px 0 #463054}}
+@keyframes psCrystalGlint{0%{box-shadow:0 0 0 transparent}30%{box-shadow:3px 0 0 #c6a3ff,-3px 0 0 #9efaff}60%{box-shadow:0 0 0 3px #a68cf5,0 0 13px #bcacff}100%{box-shadow:inset -2px -2px 0 #0004}}
+@keyframes psPlayRune{0%{box-shadow:inset -2px -2px 0 #0004}35%{box-shadow:0 0 0 3px #ffe6a3,0 0 10px #ff9c7e}70%{box-shadow:3px 3px 0 #ef688a,-3px -3px 0 #7debff}100%{box-shadow:inset -2px -2px 0 #0004}}
+@keyframes psSaveFlash{0%,100%{box-shadow:inset -2px -2px 0 #0004}30%,65%{box-shadow:0 0 0 3px #7ef2ca,0 0 12px #45ffac}}
+@keyframes psObjectCardEnter{0%{opacity:0;transform:translateY(10px)}100%{opacity:1;transform:translateY(0)}}
+@keyframes psItemReveal{0%{opacity:0;transform:translateY(8px)}100%{opacity:1;transform:translateY(0)}}
+@keyframes psSwordSpark{0%{transform:translate(-12px,14px) scale(.45);opacity:0}20%{opacity:1}55%{transform:translate(0,0) scale(1.15)}80%{transform:translate(7px,-6px) scale(.75);opacity:1}100%{transform:translate(10px,-10px) scale(.5);opacity:0}}
+/* Theme Workshop: a fully separate, toggled retro window. */
+#poison-studio .ps-theme-window{position:absolute;inset:0;z-index:6;display:none;align-items:center;justify-content:center;background:rgba(2,3,9,.78);padding:22px;min-width:0}
+#poison-studio .ps-theme-window.open{display:flex}
+#poison-studio .ps-theme-shell{background:#0d1427;border:3px solid #8c86c9;box-shadow:0 0 0 4px #171f3b,10px 10px 0 #02040a;width:min(1040px,96vw);height:min(745px,94vh);display:flex;flex-direction:column;min-height:0;animation:psThemeWindowOpen .32s steps(5,end) 1 both}
+@keyframes psThemeWindowOpen{0%{opacity:0;transform:translateY(15px) scale(.98)}100%{opacity:1;transform:translateY(0) scale(1)}}
+#poison-studio .ps-theme-titlebar{display:flex;align-items:center;gap:12px;padding:12px 16px;background:linear-gradient(180deg,#303c69,#202a4d);border-bottom:3px solid #6878a8}
+#poison-studio .ps-theme-crest{width:42px;height:42px;background:#6050a2;border:2px solid #e9d7ff;display:grid;place-items:center;color:#e5faff;font-size:25px!important;text-shadow:3px 3px #2a1f5e;flex:none}
+#poison-studio .ps-theme-titlebar b{display:block;font:400 17px/1.3 'Silkscreen',monospace!important;color:#ffe8a6}
+#poison-studio .ps-theme-titlebar small{display:block;font-size:11px!important;letter-spacing:.08em;color:#cfdbfd}
+#poison-studio .ps-theme-indicator{font-size:12px!important;color:#d7eaff;background:#182443;border:2px solid #556c9e;padding:6px 10px;max-width:175px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+#poison-studio .ps-theme-content{display:grid;grid-template-columns:1fr 1fr;gap:0;min-height:0;flex:1;overflow:hidden}
+#poison-studio .ps-theme-left,#poison-studio .ps-theme-right{min-height:0;overflow:auto;padding:18px;background:repeating-linear-gradient(0deg,#101b34 0px,#101b34 2px,#10192f 2px,#10192f 4px)}
+#poison-studio .ps-theme-left{border-right:3px solid #475a87}
+#poison-studio .ps-theme-right{background:#0b1224}
+#poison-studio .ps-theme-left h3,#poison-studio .ps-theme-right h3{margin:4px 0 12px;color:#f7d793;font-size:12px!important;letter-spacing:.1em}
+#poison-studio .ps-theme-gallery{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+#poison-studio .ps-theme-card{display:flex!important;align-items:center;gap:10px;min-width:0;min-height:52px!important;text-align:left!important;white-space:normal!important;background:#172545!important;border:2px solid #445b8d!important;padding:7px!important}
+#poison-studio .ps-theme-card:hover{border-color:#93cced!important}
+#poison-studio .ps-theme-card.selected{border-color:#ffd896!important;background:#433554!important;box-shadow:inset 0 0 0 2px #795a9a!important}
+#poison-studio .ps-theme-card-color{display:block;flex:none;width:38px;height:32px;image-rendering:pixelated;border:2px solid #9db0db}
+#poison-studio .ps-theme-card-name{overflow:hidden;overflow-wrap:anywhere;font-size:12px!important;line-height:1.3!important}
+#poison-studio .ps-theme-custom-title{display:flex;gap:8px;align-items:center;justify-content:space-between;margin:17px 0 12px;border-top:2px solid #31466e;padding-top:14px}
+#poison-studio .ps-theme-custom-title h3{margin:0}
+#poison-studio .ps-theme-custom-title>span{color:#a8c2ed;font-size:11px!important}
+#poison-studio .ps-theme-empty{grid-column:1/-1;padding:15px;border:2px dashed #4b5d87;font-size:13px!important;color:#b4c9ef;line-height:1.5!important}
+#poison-studio .ps-theme-caption{font-size:12px!important;line-height:1.5!important;color:#b5c8e7;margin:10px 0}
+#poison-studio .ps-theme-preview{background:#141e34;border:2px solid #576ca2;padding:7px;margin-bottom:13px}
+#poison-studio .ps-preview-topline{display:flex;justify-content:space-between;gap:8px;font-size:11px!important;color:#d0d9f7;margin:1px 4px 8px}
+#poison-studio .ps-preview-topline span{font-size:11px!important}
+#poison-studio .ps-preview-art{--th-sky1:#03020a;--th-sky2:#0e0922;--th-mtn1:#0f0b25;--th-mtn2:#0a0719;--th-solid:#1b1740;--th-top:#4d45a8;--th-grass:#3fd9b0;--th-gem:#ffd86b;--th-ready:#ff6f91;position:relative;overflow:hidden;height:128px;background:linear-gradient(180deg,var(--th-sky1),var(--th-sky2));image-rendering:pixelated}
+#poison-studio .ps-preview-moon{position:absolute;left:80%;top:15%;width:19px;height:19px;background:var(--th-gem);box-shadow:0 0 0 4px #ffffff20,4px 0 0 #ffffff22}
+#poison-studio .ps-preview-mountain{position:absolute;left:-10%;width:120%;height:67px;bottom:17px;clip-path:polygon(0 100%,0 68%,8% 55%,15% 76%,26% 27%,33% 52%,44% 8%,54% 46%,63% 38%,72% 62%,80% 30%,95% 70%,100% 60%,100% 100%)}
+#poison-studio .ps-preview-mountain.ps-back{background:var(--th-mtn1);bottom:21px;opacity:.85}
+#poison-studio .ps-preview-mountain.ps-front{background:var(--th-mtn2);bottom:4px;transform:translateX(14px)}
+#poison-studio .ps-preview-floor{position:absolute;bottom:0;left:0;right:0;height:20px;background:var(--th-solid);border-top:5px solid var(--th-top);box-shadow:0 -2px 0 var(--th-grass)}
+#poison-studio .ps-preview-block{position:absolute;bottom:20px;left:23%;width:49px;height:28px;background:var(--th-solid);border-top:5px solid var(--th-top);box-shadow:18px -12px 0 -8px var(--th-grass)}
+#poison-studio .ps-preview-gem{position:absolute;bottom:57px;left:34%;width:12px;height:12px;background:var(--th-gem);transform:rotate(45deg);box-shadow:0 0 0 2px #ffffff20}
+#poison-studio .ps-preview-grass{position:absolute;bottom:20px;left:54%;height:7px;width:65px;border-bottom:3px solid var(--th-grass);box-shadow:0 5px 0 -2px var(--th-grass)}
+#poison-studio .ps-theme-palette-strip{display:flex;gap:3px;margin-top:7px;height:15px}
+#poison-studio .ps-theme-palette-strip span{flex:1;border:1px solid #ffffff35}
+#poison-studio .ps-theme-name-label{display:flex;flex-direction:column;gap:5px;margin:10px 0;color:#e1eafb;font-size:12px!important}
+#poison-studio .ps-theme-name-label input{width:100%}
+#poison-studio .ps-theme-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+#poison-studio .ps-theme-color-field{background:#182442;border:2px solid #3b4f80;display:grid;grid-template-columns:1fr auto;align-items:center;gap:4px;padding:7px 8px;min-width:0}
+#poison-studio .ps-theme-color-field span{font-size:12px!important;line-height:1.25!important;overflow-wrap:anywhere}
+#poison-studio .ps-theme-color-field input[type=color]{grid-column:2;grid-row:1;min-width:34px!important;width:34px!important;height:30px!important;padding:2px!important;border:2px solid #93a6d4;cursor:pointer}
+#poison-studio .ps-theme-color-field output{font-size:10px!important;color:#8da6d3;grid-column:1/-1;letter-spacing:.05em}
+#poison-studio .ps-theme-advanced-toggle{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;margin:14px 0 12px;background:#283f6a!important;border-color:#8495d4!important;color:#fff2c1!important}
+#poison-studio .ps-theme-advanced-toggle span{font-size:16px!important}
+#poison-studio .ps-theme-right #ps-theme-advanced-content[hidden]{display:none!important}
+#poison-studio #ps-theme-notice{margin:12px 0 0;background:#1b2b4a;border-left:4px solid #8ad6ed;padding:9px;font-size:12px!important;line-height:1.4!important;color:#d3e7f5}
+#poison-studio .ps-theme-actions{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:13px 16px;background:#1a2846;border-top:3px solid #5b73a3}
+#poison-studio .ps-theme-actions button{font-size:12px!important}
+#poison-studio #ps-theme-apply{border-color:#fff2b4!important}
+#poison-studio #ps-theme-apply:hover{animation:psPlayRune .6s steps(5,end) 1!important}
+#poison-studio #ps-theme-update:disabled,#poison-studio #ps-theme-delete:disabled{opacity:.35}
+@media(max-width:900px){#poison-studio .ps-theme-shell{width:95vw;height:92vh}#poison-studio .ps-theme-content{grid-template-columns:1fr 1fr}#poison-studio .ps-theme-gallery{grid-template-columns:1fr}#poison-studio .ps-theme-actions{padding:8px;gap:5px}}
+@media(max-width:640px){#poison-studio .ps-theme-content{grid-template-columns:1fr;overflow:auto}#poison-studio .ps-theme-left,#poison-studio .ps-theme-right{overflow:visible}#poison-studio .ps-theme-left{border-right:0;border-bottom:3px solid #475a87}#poison-studio .ps-theme-gallery{grid-template-columns:repeat(2,minmax(0,1fr))}#poison-studio .ps-theme-indicator{display:none}}
+@media(prefers-reduced-motion:reduce){#poison-studio *{animation:none!important;transition:none!important}}
+
+
+/* Pixel sword flare on opening Custom Objects: 6px square sprites with a short stepped reveal */
+#poison-studio .ps-object-reveal::after{
+  content:''!important;position:absolute;width:6px;height:6px;right:52px;top:44px;
+  background:#f7f4ff;pointer-events:none;
+  box-shadow:
+    6px -6px 0 #effcff,12px -12px 0 #d5efff,18px -18px 0 #a0e4ff,
+    24px -24px 0 #9ce4ff,30px -30px 0 #fff9dc,
+    -6px 6px 0 #ffe5a6,-12px 12px 0 #e6b96c,
+    -12px -6px 0 #ffd66d,6px 12px 0 #ffd66d,
+    -18px 18px 0 #774c99,-24px 24px 0 #4d3076,
+    14px -16px 0 #ffffff8f,-5px -10px 0 #bcedff88,
+    0 0 9px 2px #a6caff;
+  animation:psSwordSpark .74s steps(6,end) 1 both!important;
+}
+/* Three glowing markers make the advanced zone accents visible in the preview. */
+#poison-studio .ps-preview-zoneglow{position:absolute;right:16%;bottom:35px;display:flex;gap:6px;height:10px;align-items:flex-end}
+#poison-studio .ps-preview-zoneglow i{display:block;width:8px;height:8px;background:var(--th-zone1);box-shadow:0 0 0 2px #ffffff20}
+#poison-studio .ps-preview-zoneglow i:nth-child(2){background:var(--th-zone2);transform:translateY(-8px)}
+#poison-studio .ps-preview-zoneglow i:nth-child(3){background:var(--th-zone3);transform:translateY(-16px)}
+
