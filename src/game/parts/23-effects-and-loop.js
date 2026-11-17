@@ -31,8 +31,7 @@ function drawRuntimeOverlay(){
 function updateRuntimeUI(msg=''){
   runtime.reason = msg || runtime.reason;
   setRuntimeBadge(runtime.mode, runtime.reason);
-  const bp=$('b-pause'), br=$('b-resume'), bs=$('b-stop'), bre=$('b-restart');
-  if(bp) bp.disabled = runtime.mode!=='running';
+  const br=$('b-resume'), bs=$('b-stop'), bre=$('b-restart');
   if(br) br.disabled = runtime.mode==='running';
   if(bs) bs.disabled = runtime.mode==='stopped';
   if(bre) bre.disabled = false;
@@ -41,6 +40,7 @@ function requestFrame(){ if(runtime.mode==='running' && !window.poisonEditorOpen
 function setRuntimeMode(mode,msg=''){
   if(mode==='running' && window.poisonEditorOpen) return; // Studio always owns runtime while open.
   if(runtime.raf){ cancelAnimationFrame(runtime.raf); runtime.raf=0; } // No pending game frame.
+  if(mode==='stopped')runtime.autoPaused=false;
   runtime.mode=mode; runtime.reason=msg || runtime.reason;
   last=performance.now(); acc=0;
   if(mode==='running'){
@@ -64,10 +64,9 @@ window.poisonRuntime={
   stop(msg='Stopped'){setRuntimeMode('stopped',msg);},
   restart(msg='Level restarted'){if(window.poisonEditorOpen)return;buildLevel(V.seed,msg);setRuntimeMode('running','Running');}
 };
-$('b-pause').addEventListener('click', e => { window.poisonRuntime.pause('Paused manually'); e.target.blur(); });
-$('b-resume').addEventListener('click', e => { window.poisonRuntime.resume('Running'); e.target.blur(); });
-$('b-stop').addEventListener('click', e => { window.poisonRuntime.stop('Stopped manually'); e.target.blur(); });
-$('b-restart').addEventListener('click', e => { window.poisonRuntime.restart('Restarted current level.'); e.target.blur(); });
+$('b-resume').addEventListener('click', e => { window.poisonRuntime.resume('Running'); e.currentTarget.blur(); });
+$('b-stop').addEventListener('click', e => { window.poisonRuntime.stop('Stopped manually'); e.currentTarget.blur(); });
+$('b-restart').addEventListener('click', e => { window.poisonRuntime.restart('Restarted current level.'); e.currentTarget.blur(); });
 document.addEventListener('visibilitychange', () => {
   if(document.hidden && runtime.mode==='running'){ runtime.autoPaused = true; window.poisonRuntime.pause('Auto paused in background'); }
   else if(!document.hidden && runtime.autoPaused && runtime.mode==='paused'){ runtime.autoPaused = false; window.poisonRuntime.resume('Running'); }
@@ -78,7 +77,8 @@ function frame(now) {
   const raw = Math.min(0.1, (now - last) / 1000); last = now;
   const scaled = raw * P.timeScale;
   acc += scaled;
-  while (acc >= DT) { update(DT); acc -= DT; }
+  while (acc >= DT && runtime.mode==='running' && !window.poisonEditorOpen) { update(DT); acc -= DT; }
+  if(runtime.mode!=='running'||window.poisonEditorOpen)return;
   updateFx(scaled); fxTick(raw);
   updateCam(raw, false);
   musicTick(raw);

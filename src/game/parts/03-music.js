@@ -31,14 +31,16 @@
   function stopMusic() { if (mEl) mEl.pause(); killNode(); }
   const music = {
     start: startMusic, stop: stopMusic,
-    load(src, name) { if (!elSetup()) return; killNode(); mMode = 'file'; mEl.src = src; mName = name || 'track'; if (!window.poisonEditorOpen && (!window.poisonRuntime || window.poisonRuntime.mode === 'running') && !document.hidden) { if (ac.state === 'suspended') ac.resume().catch(() => {}); startMusic(); } },
+    load(src, name) { if (!elSetup()) return; killNode(); mMode = 'file'; mEl.src = src; mName = name || 'track'; if (!window.poisonEditorOpen && (!window.poisonRuntime || window.poisonRuntime.mode === 'running') && !document.hidden) { if (ac.state === 'suspended') resumeContext(); startMusic(); } },
     info() { return mMode === 'none' ? 'starting...' : (V.music ? mName : mName + ' (off)'); },
     setVol() { if (mGain) mGain.gain.setTargetAtTime(mBase(), ac.currentTime, 0.05); else if (mEl) mEl.volume = Math.min(1, mBase() * 2); if (!V.music) stopMusic(); else startMusic(); },
     setMood() {}, setSeed() {}, setEnergy() {},
     duck() { if (!mGain) return; const n = ac.currentTime; mGain.gain.setTargetAtTime(mBase() * 0.3, n, 0.02); mGain.gain.setTargetAtTime(mBase(), n + 0.5, 0.2); }
   };
-  function resume() { if (window.poisonEditorOpen || (window.poisonRuntime && window.poisonRuntime.mode !== 'running') || document.hidden) return; if (init() && ac.state === 'suspended') ac.resume().catch(() => {}); startMusic(); }
-  function suspend() { stopMusic(); if (ac && ac.state === 'running') ac.suspend().catch(() => {}); }
+  function runtimeAllowsAudio(){return !window.poisonEditorOpen&&(!window.poisonRuntime||window.poisonRuntime.mode==='running')&&!document.hidden;}
+  function resumeContext(){ac.resume().then(()=>{if(!runtimeAllowsAudio()){stopMusic();return ac.suspend();}}).catch(()=>{});}
+  function resume() { if (window.poisonEditorOpen || (window.poisonRuntime && window.poisonRuntime.mode !== 'running') || document.hidden) return; if (init() && ac.state === 'suspended') resumeContext(); startMusic(); }
+  function suspend() { stopMusic(); if(ac&&ac.state!=='closed')ac.suspend().catch(()=>{}); }
   function setVol() { if (master) master.gain.value = V.sound ? V.volume : 0; }
   function tone(o) {
     const t = ac.currentTime + (o.delay || 0), dur = o.dur, g = ac.createGain(), osc = ac.createOscillator();
