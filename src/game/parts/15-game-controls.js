@@ -83,6 +83,7 @@ function buildLevel(seed, msg) {
   V.seed = seed; seedIn.value = seed;
   applyTheme(seed);
   const L = window.procOn ? generateWorld(seed, window.procLen, window.procLayout) : customBuild(); if (window.procOn) L.name = LAYOUTS[L.layout]; COLS = L.cols; ROWS = L.rows; W = COLS * T; H = ROWS * T;
+  if(window.procOn)window.poisonProcedural?.capture(L);
   grid = L.grid; lvl = L;
   phase = 0; gateOf = new Map();
   gates = L.gates.map((g, i) => ({ ...g, open: false, next: 1 })); gates.forEach((g, i) => g.tiles.forEach(([tx, ty]) => gateOf.set(ty * COLS + tx, g.ci)));

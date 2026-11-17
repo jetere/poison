@@ -17,7 +17,7 @@ function declutter(M, C, R) {
   M.gems = M.gems.filter(q => !solid(q.x >> 3, q.y >> 3) && !kept.some(k => q.x > k.x0 + 10 && q.x < k.x1 - 10 && Math.abs(q.y - k.y) < 22));
 }
 function generateWorld(seed, total, layout) {
-  const rr = mulberry32((seed * 40503 + 7) >>> 0), keys = Object.keys(LAYOUTS);
+  const rr = mulberry32((seed * 40503 + 7) >>> 0), keys = Object.keys(LAYOUTS).filter(key=>key!=='custom');
   let m = keys.includes(layout) ? layout : keys[Math.floor(rr() * keys.length)];
   if ((m === 'zigzag' || m === 'zagup') && total < 320) m = 'linear';
   const up = m === 'zagup';

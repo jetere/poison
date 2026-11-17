@@ -21,6 +21,33 @@ app.whenReady().then(async () => {
     await run(`poisonRuntime.pause(); if(poisonRuntime.mode!=='paused'||poisonRuntime.frameScheduled)throw Error('Pause failed'); poisonRuntime.resume(); poisonStudio.open();`);
     await new Promise(resolve => setTimeout(resolve, 100));
     assert.equal(await run(`poisonRuntime.mode==='stopped' && !poisonRuntime.frameScheduled && window.poisonEditorOpen`), true, 'Studio stops game');
+    await run(`
+      (()=>{
+        const original=JSON.stringify(poisonStudio.serialize());
+        const generate=(seed,layout='linear',length='320')=>{
+          document.querySelector('#ps-new').click();document.querySelector('#ps-new-seed').click();
+          document.querySelector('#pg-seed').value=seed;document.querySelector('#pg-lay').value=layout;document.querySelector('#pg-len').value=length;document.querySelector('#pg-go').click();
+          return JSON.stringify(poisonProcedural.snapshot);
+        };
+        const first=generate(42);if(generate(42)!==first)throw Error('Procedural seed not repeatable');
+        if(generate(43)===first)throw Error('Different seeds identical');
+        if(JSON.stringify(poisonStudio.serialize())!==original)throw Error('Procedural mode replaced custom draft');
+        for(const layout of ['auto','linear','rise','fall','zigzag','zagup']){
+          generate(42,layout,'512');const map=poisonProcedural.snapshot;
+          if(!map.grid.length||!map.cps.length||!map.goal)throw Error('Incomplete generated map');
+          if(layout!=='auto'&&map.layout!==layout)throw Error('Layout setting ignored');
+        }
+        if(poisonRuntime.mode!=='stopped'||poisonRuntime.frameScheduled)throw Error('Generator started runtime in editor');
+        const snapshot=JSON.stringify(poisonProcedural.snapshot);poisonStudio.play();
+        if(!window.procOn||poisonRuntime.mode!=='running')throw Error('Play disabled procedural mode');
+        poisonStudio.open();if(JSON.stringify(poisonProcedural.snapshot)!==snapshot)throw Error('Opening editor replaced generated map');
+        if(document.querySelector('#ps-procedural-preview').style.display==='none')throw Error('Map preview hidden');
+        document.querySelector('#ps-procedural').click();if(window.procOn)throw Error('Editor toggle failed');
+        if(JSON.stringify(poisonStudio.serialize())!==original)throw Error('Custom draft not restored');
+        document.querySelector('#pg-toggle').click();if(!window.procOn)throw Error('Game toggle failed');
+        document.querySelector('#ps-procedural').click();
+      })();
+    `);
     await run(`poisonRuntime.resume(); if(poisonRuntime.mode!=='stopped')throw Error('Studio allowed game to resume');
       window.smokeScene=poisonStudio.serialize(); poisonStudio.deserialize(JSON.parse(JSON.stringify(smokeScene)));
       if(JSON.stringify(poisonStudio.serialize())!==JSON.stringify(smokeScene))throw Error('JSON round-trip changed scene');
@@ -51,7 +78,7 @@ app.whenReady().then(async () => {
       poisonRuntime.restart();if(poisonRuntime.mode!=='running')throw Error('Restart failed');poisonRuntime.stop();`);
     assert.deepEqual(errors, [], 'renderer errors');
     console.log('PASS: startup, canvas, pause/resume/restart, Studio stop, Galaxy, undo/redo, custom objects, script approval, JSON round-trip.');
-  } catch (error) { console.error(error); clearTimeout(timeout); app.exit(1); return; }
+  } catch (error) { console.error(error, errors); clearTimeout(timeout); app.exit(1); return; }
   clearTimeout(timeout);
   app.exit(0);
 });

@@ -204,6 +204,7 @@
     return {minX,minY,maxX,maxY};
   }
   function paintDemo(which='starter') {
+    if(window.procOn)window.poisonSetProcedural(false);
     tiles.clear();objs.clear();params.clear();selection.clear();tileSelection=null;
     if(which==='blank'){objs.set(K(3,7),'player');objs.set(K(35,7),'flag');}
     if(which==='starter'){
@@ -218,10 +219,10 @@
       for(let c=3;c<11;c++)tiles.set(K(c,5),1);
       objs.set(K(3,23),'player');objs.set(K(5,4),'flag');objs.set(K(17,16),'cp');objs.set(K(18,23),'spring');objs.set(K(22,9),'gem');objs.set(K(11,17),'lift');
     }
-    if(which==='creator'){paintDemo('starter');const specs=[[6,9,makeCustom('switch')],[12,8,makeCustom('door')],[29,8,makeCustom('patrol')],[31,7,makeCustom('collect')]];specs.forEach(([x,y,p])=>{const id=addPrefab(p),k=K(x,y);p.prefabId=id;objs.set(k,'custom');params.set(k,{custom:p});});savePrefabs();}
     cam.x=-7;cam.y=-3;cam.z=20;currentSelection();
   }
   function currentSelection() {selection.clear();tileSelection=null;}
+  function showSeedMap(){hideModal();window.poisonProcedural.open();}
   function cloneData() {return {tiles:[...tiles],objs:[...objs],params:[...params].map(([k,v])=>[k,deep(v)]),theme:V.theme,themeData:typeof V.theme==='string'&&CUSTOM_THEMES.has(V.theme)?normalizeTheme(CUSTOM_THEMES.get(V.theme)):null};}
   function loadSnapshot(s) {tiles.clear();objs.clear();params.clear();s.tiles.forEach(([k,v])=>tiles.set(k,v));s.objs.forEach(([k,v])=>objs.set(k,v));s.params.forEach(([k,v])=>params.set(k,deep(v)));if(s.themeData&&typeof s.theme==='string'&&s.theme.startsWith('custom:')){importCustomTheme(s.theme,s.themeData);saveCustomThemes();}if(s.theme!==undefined){V.theme=s.theme;applyTheme(V.seed);save();}currentSelection();redrawAll();}
   function saveCurrent() { try{localStorage.setItem(CK,JSON.stringify(serialize()));$e('#ps-autosave').textContent='Autosaved';}catch(e){$e('#ps-autosave').textContent='Autosave unavailable';} }
@@ -538,6 +539,7 @@
       if(o.get(k)==='custom')accepted.custom=cleanCustom(vals.custom);if(Object.keys(accepted).length)p.set(k,accepted);
     }
     if(Array.isArray(d.prefabs))for(const item of d.prefabs.slice(0,100)){if(Array.isArray(item)&&typeof item[0]==='string'&&/^pf_[\w-]{2,90}$/.test(item[0]))addPrefab(item[1],item[0]);}savePrefabs();disableScripts();
+    if(window.procOn)window.poisonSetProcedural(false);
     tiles.clear();objs.clear();params.clear();t.forEach((v,k)=>tiles.set(k,v));o.forEach((v,k)=>objs.set(k,v));p.forEach((v,k)=>params.set(k,v));
     clearSel();$e('#ps-name').value=String(d.name||'My level').slice(0,40);
     if(typeof d.theme==='string'&&d.theme.startsWith('custom:')&&d.themeData){importCustomTheme(d.theme,d.themeData);saveCustomThemes();}
@@ -571,7 +573,8 @@
     <button class="ps-template" data-template="starter"><b>▦ Platforming starter</b><br><span class="ps-muted">Ground, gaps, checkpoints, a spring and one moving hazard</span></button>
     <button class="ps-template" data-template="vertical"><b>⇧ Vertical challenge</b><br><span class="ps-muted">Stacked platforms, a lift, a gem, and elevated finish</span></button>
     <button class="ps-template" data-template="blank"><b>＋ Empty scene</b><br><span class="ps-muted">Only a spawn and finish flag to begin your design</span></button>
-    <button class="ps-template" data-template="creator"><b>✦ Creator components demo</b><br><span class="ps-muted">Custom switch, solid door, patrol enemy and collectible with editable components</span></button><div style="text-align:right;margin-top:10px"><button id="ps-modal-cancel">Cancel</button></div>`);
+    <button class="ps-template" id="ps-new-seed"><b>Seed-generated map</b><br><span class="ps-muted">Use the game procedural generator with shared seed, layout and length settings</span></button><div style="text-align:right;margin-top:10px"><button id="ps-modal-cancel">Cancel</button></div>`);
+    $e('#ps-new-seed').onclick=showSeedMap;
     el.querySelectorAll('[data-template]').forEach(b=>b.onclick=()=>{paintDemo(b.dataset.template);$e('#ps-name').value='Untitled scene';resetHistory();frameAll();refreshLibrary();hideModal();say('New '+b.dataset.template+' scene ready.');});
     $e('#ps-modal-cancel').onclick=hideModal;
   }
@@ -581,9 +584,9 @@
     <div><b>Shortcuts</b><br>Ctrl+Z / Y: Undo / redo<br>Ctrl+C / V: Copy / paste<br>Ctrl+D: Duplicate<br>Delete: Remove selection</div>
     <div><b>Project</b><br>Ctrl+S: Save locally<br>Home: Frame scene<br>Arrow keys: Move selection<br>Esc: Close / deselect</div>
     </div><p>Use <b>＋ Create Custom Object</b> to make reusable Poison components, choose built-in behaviors, attach a script and save it as a prefab. Scripts require explicit opt-in for each imported scene.</p><p>Tiles and objects occupy different editing layers. In the right Inspector, selected moving platforms, saws, lasers, conveyors and environmental zones expose settings used by the actual game.</p><div style="text-align:right"><button id="ps-modal-ok" class="ps-primary">Start editing</button></div>`);$e('#ps-modal-ok').onclick=hideModal;}
-  function openEditor(){if(window.poisonEditorOpen)return;window.poisonEditorOpen=true;if(window.poisonRuntime)window.poisonRuntime.stop('Game stopped: Studio open');el.style.display='flex';document.body.style.overflow='hidden';renderAssets();renderHierarchy();updateToolButtons();requestAnimationFrame(()=>{resize();if(!history.length)resetHistory();if(!openedOnce){openedOnce=true;frameAll();}renderInspector();canvas.focus();});}
+  function openEditor(){if(window.poisonEditorOpen)return;window.poisonEditorOpen=true;window.poisonProcedural?.refresh();if(window.poisonRuntime)window.poisonRuntime.stop('Game stopped: Studio open');el.style.display='flex';document.body.style.overflow='hidden';renderAssets();renderHierarchy();updateToolButtons();requestAnimationFrame(()=>{resize();if(!history.length)resetHistory();if(!openedOnce){openedOnce=true;frameAll();}renderInspector();canvas.focus();});}
   function closeEditor(){hideModal();toggleThemeWindow(false);el.style.display='none';window.poisonEditorOpen=false;document.body.style.overflow='';saveCurrent();refreshLibrary();/* Deliberately leave the game stopped; user chooses Resume or Play Scene. */}
-  function playScene(){if(!objs.size||![...objs.values()].includes('player')){say('Place a Player spawn before testing.');return;}try{closeEditor();customRuntime.approve(allowScripts);if(window.procOn&&window.poisonSetProcedural)window.poisonSetProcedural(false);else {window.procOn=false;buildLevel(V.seed,'Testing '+name());}if(window.poisonRuntime)window.poisonRuntime.resume('Testing scene');canvas.blur();}catch(e){openEditor();say('Level build failed: '+e.message);}}
+  function playScene(){if(window.procOn){closeEditor();window.poisonRuntime.resume('Playing procedural map');return;}if(!objs.size||![...objs.values()].includes('player')){say('Place a Player spawn before testing.');return;}try{closeEditor();customRuntime.approve(allowScripts);if(window.procOn&&window.poisonSetProcedural)window.poisonSetProcedural(false);else {window.procOn=false;buildLevel(V.seed,'Testing '+name());}if(window.poisonRuntime)window.poisonRuntime.resume('Testing scene');canvas.blur();}catch(e){openEditor();say('Level build failed: '+e.message);}}
   function arrowMove(dx,dy){if(!selection.size||lockObjects)return;const keys=[...selection].filter(k=>objs.has(k)),entries=keys.map(k=>[k,objs.get(k),params.get(k)?deep(params.get(k)):null]);moveObjects(dx,dy,entries);commit('Moved selection');}
   function keyShortcuts(e){
     if(!window.poisonEditorOpen)return;
