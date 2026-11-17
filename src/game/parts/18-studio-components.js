@@ -1,4 +1,5 @@
   /* ---------- Poison Creator: custom components and prefab authoring ---------- */
+  let generatedScene=null;
   const PREFAB_KEY='poison_prefabs_v1',prefabs=new Map();
   let allowScripts=false;
   const deep=v=>JSON.parse(JSON.stringify(v));
@@ -204,7 +205,7 @@
     return {minX,minY,maxX,maxY};
   }
   function paintDemo(which='starter') {
-    if(window.procOn)window.poisonSetProcedural(false);
+    window.poisonProcedural?.detach();generatedScene=null;
     tiles.clear();objs.clear();params.clear();selection.clear();tileSelection=null;
     if(which==='blank'){objs.set(K(3,7),'player');objs.set(K(35,7),'flag');}
     if(which==='starter'){
@@ -223,13 +224,14 @@
   }
   function currentSelection() {selection.clear();tileSelection=null;}
   function showSeedMap(){hideModal();window.poisonProcedural.open();}
-  function cloneData() {return {tiles:[...tiles],objs:[...objs],params:[...params].map(([k,v])=>[k,deep(v)]),theme:V.theme,themeData:typeof V.theme==='string'&&CUSTOM_THEMES.has(V.theme)?normalizeTheme(CUSTOM_THEMES.get(V.theme)):null};}
-  function loadSnapshot(s) {tiles.clear();objs.clear();params.clear();s.tiles.forEach(([k,v])=>tiles.set(k,v));s.objs.forEach(([k,v])=>objs.set(k,v));s.params.forEach(([k,v])=>params.set(k,deep(v)));if(s.themeData&&typeof s.theme==='string'&&s.theme.startsWith('custom:')){importCustomTheme(s.theme,s.themeData);saveCustomThemes();}if(s.theme!==undefined){V.theme=s.theme;applyTheme(V.seed);save();}currentSelection();redrawAll();}
+  function cloneData() {return {generatedScene:deep(generatedScene),tiles:[...tiles],objs:[...objs],params:[...params].map(([k,v])=>[k,deep(v)]),theme:V.theme,themeData:typeof V.theme==='string'&&CUSTOM_THEMES.has(V.theme)?normalizeTheme(CUSTOM_THEMES.get(V.theme)):null};}
+  function loadSnapshot(s) {generatedScene=deep(s.generatedScene||null);tiles.clear();objs.clear();params.clear();s.tiles.forEach(([k,v])=>tiles.set(k,v));s.objs.forEach(([k,v])=>objs.set(k,v));s.params.forEach(([k,v])=>params.set(k,deep(v)));if(s.themeData&&typeof s.theme==='string'&&s.theme.startsWith('custom:')){importCustomTheme(s.theme,s.themeData);saveCustomThemes();}if(s.theme!==undefined){V.theme=s.theme;applyTheme(V.seed);save();}currentSelection();redrawAll();}
   function saveCurrent() { try{localStorage.setItem(CK,JSON.stringify(serialize()));$e('#ps-autosave').textContent='Autosaved';}catch(e){$e('#ps-autosave').textContent='Autosave unavailable';} }
   function scheduleSave(){clearTimeout(saveTimer);saveTimer=setTimeout(saveCurrent,350);}
   function updateHistoryButtons(){$e('#ps-undo').disabled=historyIndex===0;$e('#ps-redo').disabled=historyIndex>=history.length-1;}
   function resetHistory(){history=[cloneData()];historyIndex=0;updateHistoryButtons();scheduleSave();}
   function commit(label='Scene updated'){
+    if(generatedScene)window.poisonProcedural?.detach();
     const snap=cloneData();if(JSON.stringify(snap)===JSON.stringify(history[historyIndex]))return;
     history.length=historyIndex+1;history.push(snap);if(history.length>HISTORY_LIMIT)history.shift();historyIndex=history.length-1;
     updateHistoryButtons();scheduleSave();say(label);redrawAll();
@@ -278,6 +280,7 @@
       $e('#psi-rotate').onclick=()=>rotate('r');$e('#psi-flip').onclick=()=>rotate('f');
       $e('#psi-delete').onclick=deleteSelection;$e('#psi-duplicate').onclick=duplicateSelection;
       const props=$e('#psi-properties'),fields=PROPERTIES[id]||[];
+      if(params.get(k)?.generated){drawGeneratedProperties(k,props);return;}
       if(!fields.length)props.innerHTML='<p class="ps-muted">This object has no extra parameters. Drag it in the scene or adjust its tile coordinates above.</p>';
       fields.forEach(([key,title,def,min,max,step])=>{
         const box=document.createElement('div');box.innerHTML=fld('psi-'+key,title,prop(k,key,def),min,max,step);props.append(box);
@@ -523,23 +526,25 @@
       for(let i=1;i<a.length;i++){const [cx,t]=a[i];if(cx===last+1&&t===v){len++;last=cx;}else{runs.push([+r,start,len,v]);start=last=cx;v=t;len=1;}}
       runs.push([+r,start,len,v]);
     }
-    return{game:'poison',v:5,name:name(),theme:V.theme,themeData:typeof V.theme==='string'&&V.theme.startsWith('custom:')?normalizeTheme(CUSTOM_THEMES.get(V.theme)):null,tiles:runs,objs:[...objs].map(([k,id])=>[...P(k),id]),meta:[...params].filter(([k,v])=>objs.has(k)&&Object.keys(v).length).map(([k,v])=>[...P(k),deep(v)]),prefabs:[...prefabs].map(([id,p])=>[id,deep(p)])};
+    return{game:'poison',v:5,...(generatedScene?{generatedScene:deep(generatedScene)}:{}),name:name(),theme:V.theme,themeData:typeof V.theme==='string'&&V.theme.startsWith('custom:')?normalizeTheme(CUSTOM_THEMES.get(V.theme)):null,tiles:runs,objs:[...objs].map(([k,id])=>[...P(k),id]),meta:[...params].filter(([k,v])=>objs.has(k)&&Object.keys(v).length).map(([k,v])=>[...P(k),deep(v)]),prefabs:[...prefabs].map(([id,p])=>[id,deep(p)])};
   }
   function deserialize(d){
     if(!d||d.game!=='poison'||!Array.isArray(d.objs))throw Error('Not a Poison scene file');
     const t=new Map(),o=new Map(),p=new Map();
     if(typeof d.tiles==='string'&&d.cols===160&&d.rows===56){let i=0;for(const part of d.tiles.split(',')){const [v,n]=part.split('x').map(Number);if(!Number.isInteger(v)||v<0||v>5||!Number.isInteger(n)||n<1||i+n>8960)throw Error('Invalid legacy tiles');if(v)for(let j=0;j<n;j++)t.set(K((i+j)%160,Math.floor((i+j)/160)),v);i+=n;}}
-    else if(Array.isArray(d.tiles)&&d.tiles.length<=100000){let total=0;for(const [r,start,n,v] of d.tiles){if(!valid(r)||!valid(start)||!Number.isInteger(n)||n<1||n>6000||![1,2,4,5].includes(v)||(total+=n)>300000||!valid(start+n-1))throw Error('Invalid tile data');for(let j=0;j<n;j++)t.set(K(start+j,r),v);}}
+    else if(Array.isArray(d.tiles)&&d.tiles.length<=100000){let total=0;for(const [r,start,n,v] of d.tiles){if(!valid(r)||!valid(start)||!Number.isInteger(n)||n<1||n>6000||![1,2,4,5,6,7,8,9].includes(v)||(total+=n)>300000||!valid(start+n-1))throw Error('Invalid tile data');for(let j=0;j<n;j++)t.set(K(start+j,r),v);}}
     else throw Error('Invalid terrain data');
     if(d.objs.length>25000)throw Error('Too many objects');
     for(const item of d.objs){if(!Array.isArray(item)||item.length<3)continue;const [c,r,id]=item;if(BY[id]&&!BY[id].tile&&valid(c)&&valid(r))o.set(K(c,r),id);}
     if(Array.isArray(d.meta))for(const entry of d.meta.slice(0,25000)){
       if(!Array.isArray(entry)||entry.length<3)continue;const [c,r,vals]=entry,k=K(c,r);if(!valid(c)||!valid(r)||!o.has(k)||!vals||typeof vals!=='object')continue;
       const accepted={};for(const [key,label,def,min,max] of PROPERTIES[o.get(k)]||[]){const n=vals[key];if(typeof n==='number'&&isFinite(n))accepted[key]=Math.min(max,Math.max(min,n));}
+      if(vals.generated)accepted.generated=cleanGenerated(vals.generated);
       if(o.get(k)==='custom')accepted.custom=cleanCustom(vals.custom);if(Object.keys(accepted).length)p.set(k,accepted);
     }
     if(Array.isArray(d.prefabs))for(const item of d.prefabs.slice(0,100)){if(Array.isArray(item)&&typeof item[0]==='string'&&/^pf_[\w-]{2,90}$/.test(item[0]))addPrefab(item[1],item[0]);}savePrefabs();disableScripts();
-    if(window.procOn)window.poisonSetProcedural(false);
+    window.poisonProcedural?.detach();
+    generatedScene=cleanGeneratedScene(d.generatedScene);
     tiles.clear();objs.clear();params.clear();t.forEach((v,k)=>tiles.set(k,v));o.forEach((v,k)=>objs.set(k,v));p.forEach((v,k)=>params.set(k,v));
     clearSel();$e('#ps-name').value=String(d.name||'My level').slice(0,40);
     if(typeof d.theme==='string'&&d.theme.startsWith('custom:')&&d.themeData){importCustomTheme(d.theme,d.themeData);saveCustomThemes();}
@@ -586,7 +591,7 @@
     </div><p>Use <b>＋ Create Custom Object</b> to make reusable Poison components, choose built-in behaviors, attach a script and save it as a prefab. Scripts require explicit opt-in for each imported scene.</p><p>Tiles and objects occupy different editing layers. In the right Inspector, selected moving platforms, saws, lasers, conveyors and environmental zones expose settings used by the actual game.</p><div style="text-align:right"><button id="ps-modal-ok" class="ps-primary">Start editing</button></div>`);$e('#ps-modal-ok').onclick=hideModal;}
   function openEditor(){if(window.poisonEditorOpen)return;window.poisonEditorOpen=true;window.poisonProcedural?.refresh();if(window.poisonRuntime)window.poisonRuntime.stop('Game stopped: Studio open');el.style.display='flex';document.body.style.overflow='hidden';renderAssets();renderHierarchy();updateToolButtons();requestAnimationFrame(()=>{resize();if(!history.length)resetHistory();if(!openedOnce){openedOnce=true;frameAll();}renderInspector();canvas.focus();});}
   function closeEditor(){hideModal();toggleThemeWindow(false);el.style.display='none';window.poisonEditorOpen=false;document.body.style.overflow='';saveCurrent();refreshLibrary();/* Deliberately leave the game stopped; user chooses Resume or Play Scene. */}
-  function playScene(){if(window.procOn){closeEditor();window.poisonRuntime.resume('Playing procedural map');return;}if(!objs.size||![...objs.values()].includes('player')){say('Place a Player spawn before testing.');return;}try{closeEditor();customRuntime.approve(allowScripts);if(window.procOn&&window.poisonSetProcedural)window.poisonSetProcedural(false);else {window.procOn=false;buildLevel(V.seed,'Testing '+name());}if(window.poisonRuntime)window.poisonRuntime.resume('Testing scene');canvas.blur();}catch(e){openEditor();say('Level build failed: '+e.message);}}
+  function playScene(){if(!objs.size||![...objs.values()].includes('player')){say('Place a Player spawn before testing.');return;}try{closeEditor();customRuntime.approve(allowScripts);window.poisonProcedural?.detach();buildLevel(V.seed,'Testing '+name());if(window.poisonRuntime)window.poisonRuntime.resume('Testing scene');canvas.blur();}catch(e){openEditor();say('Level build failed: '+e.message);}}
   function arrowMove(dx,dy){if(!selection.size||lockObjects)return;const keys=[...selection].filter(k=>objs.has(k)),entries=keys.map(k=>[k,objs.get(k),params.get(k)?deep(params.get(k)):null]);moveObjects(dx,dy,entries);commit('Moved selection');}
   function keyShortcuts(e){
     if(!window.poisonEditorOpen)return;

@@ -20,7 +20,7 @@
   $('b-new').textContent='Open editor';
   $('b-new').onclick=()=>{if(window.poisonEditorOpen)closeEditor();else openEditor();$('b-new').blur();};
   refreshLibrary();renderAssets();updateToolButtons();updateHistoryButtons();
-  window.poisonStudio={open:openEditor,close:closeEditor,serialize,deserialize,undo,redo,play:playScene,createCustom,enableScripts:()=>requestScriptPermission(),get state(){return{tiles:tiles.size,objects:objs.size,customObjects:[...objs.values()].filter(v=>v==='custom').length,prefabs:prefabs.size,selected:selection.size,history:history.length,name:name()};}};
+  window.poisonStudio={open:openEditor,close:closeEditor,serialize,deserialize,importGenerated,undo,redo,play:playScene,createCustom,enableScripts:()=>requestScriptPermission(),get state(){return{tiles:tiles.size,objects:objs.size,customObjects:[...objs.values()].filter(v=>v==='custom').length,prefabs:prefabs.size,selected:selection.size,history:history.length,name:name()};}};
 })();
 
 
