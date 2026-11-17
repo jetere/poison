@@ -22,14 +22,31 @@ app.whenReady().then(async () => {
     await new Promise(resolve => setTimeout(resolve, 100));
     assert.equal(await run(`poisonRuntime.mode==='stopped' && !poisonRuntime.frameScheduled && window.poisonEditorOpen`), true, 'Studio stops game');
     await run(`
-      (()=>{const original=poisonStudio.serialize();
-      function generate(seed){document.querySelector('#ps-new').click();document.querySelector('#ps-new-seed').click();document.querySelector('#ps-map-seed').value=seed;document.querySelector('#ps-map-generate').click();return JSON.stringify(poisonStudio.serialize());}
-      const first=generate(42);if(generate(42)!==first)throw Error('Seed map is not deterministic');
-      if(generate(43)===first)throw Error('Different seeds produced identical maps');
-      const scene=JSON.parse(first);if(!scene.tiles.length||!scene.objs.some(o=>o[2]==='player')||!scene.objs.some(o=>o[2]==='flag'))throw Error('Generated map missing terrain or spawn/finish');
-      poisonStudio.deserialize(scene);if(JSON.stringify(poisonStudio.serialize())!==first)throw Error('Seed map round-trip failed');
-      poisonStudio.play();if(poisonRuntime.mode!=='running')throw Error('Seed map cannot play');
-      poisonStudio.open();poisonStudio.deserialize(original);})();
+      (()=>{
+        const original=JSON.stringify(poisonStudio.serialize());
+        const generate=(seed,layout='linear',length='320')=>{
+          document.querySelector('#ps-new').click();document.querySelector('#ps-new-seed').click();
+          document.querySelector('#pg-seed').value=seed;document.querySelector('#pg-lay').value=layout;document.querySelector('#pg-len').value=length;document.querySelector('#pg-go').click();
+          return JSON.stringify(poisonProcedural.snapshot);
+        };
+        const first=generate(42);if(generate(42)!==first)throw Error('Procedural seed not repeatable');
+        if(generate(43)===first)throw Error('Different seeds identical');
+        if(JSON.stringify(poisonStudio.serialize())!==original)throw Error('Procedural mode replaced custom draft');
+        for(const layout of ['auto','linear','rise','fall','zigzag','zagup']){
+          generate(42,layout,'512');const map=poisonProcedural.snapshot;
+          if(!map.grid.length||!map.cps.length||!map.goal)throw Error('Incomplete generated map');
+          if(layout!=='auto'&&map.layout!==layout)throw Error('Layout setting ignored');
+        }
+        if(poisonRuntime.mode!=='stopped'||poisonRuntime.frameScheduled)throw Error('Generator started runtime in editor');
+        const snapshot=JSON.stringify(poisonProcedural.snapshot);poisonStudio.play();
+        if(!window.procOn||poisonRuntime.mode!=='running')throw Error('Play disabled procedural mode');
+        poisonStudio.open();if(JSON.stringify(poisonProcedural.snapshot)!==snapshot)throw Error('Opening editor replaced generated map');
+        if(document.querySelector('#ps-procedural-preview').style.display==='none')throw Error('Map preview hidden');
+        document.querySelector('#ps-procedural').click();if(window.procOn)throw Error('Editor toggle failed');
+        if(JSON.stringify(poisonStudio.serialize())!==original)throw Error('Custom draft not restored');
+        document.querySelector('#pg-toggle').click();if(!window.procOn)throw Error('Game toggle failed');
+        document.querySelector('#ps-procedural').click();
+      })();
     `);
     await run(`poisonRuntime.resume(); if(poisonRuntime.mode!=='stopped')throw Error('Studio allowed game to resume');
       window.smokeScene=poisonStudio.serialize(); poisonStudio.deserialize(JSON.parse(JSON.stringify(smokeScene)));
